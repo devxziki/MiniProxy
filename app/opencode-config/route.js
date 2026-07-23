@@ -1,4 +1,4 @@
-import { getProvider, listProviders } from '../../src/providers/index.js';
+import { getProvider } from '../../src/providers/index.js';
 
 const CONTEXT_LENGTHS = {
   'deepseek-v4-flash-free': 200000,
@@ -9,11 +9,11 @@ const CONTEXT_LENGTHS = {
 };
 
 const CAPABILITIES = {
-  'deepseek-v4-flash-free': { attachment: true, reasoning: true, temperature: true, tool_call: true },
-  'mimo-v2.5-free': { attachment: true, temperature: true, tool_call: true },
-  'nemotron-3-ultra-free': { attachment: true, temperature: true, tool_call: true },
-  'north-mini-code-free': { attachment: true, temperature: true, tool_call: true },
-  'laguna-s-2.1-free': { attachment: true, temperature: true, tool_call: true },
+  'deepseek-v4-flash-free': { reasoning: true, temperature: true, tool_call: true },
+  'mimo-v2.5-free': { temperature: true, tool_call: true },
+  'nemotron-3-ultra-free': { temperature: true, tool_call: true },
+  'north-mini-code-free': { temperature: true, tool_call: true },
+  'laguna-s-2.1-free': { temperature: true, tool_call: true },
 };
 
 function buildModels(raw, labels) {
@@ -24,12 +24,10 @@ function buildModels(raw, labels) {
     if (!id) continue;
     const caps = CAPABILITIES[id] || { temperature: true, tool_call: true };
     const entry = { name: labels[id] || id };
-    if (caps.attachment) entry.attachment = true;
     if (caps.reasoning) entry.reasoning = true;
     if (caps.temperature) entry.temperature = true;
     if (caps.tool_call) entry.tool_call = true;
-    const ctx = CONTEXT_LENGTHS[id] || 200000;
-    entry.limit = { context: ctx };
+    entry.limit = { context: CONTEXT_LENGTHS[id] || 200000 };
     models[id] = entry;
   }
   return models;
