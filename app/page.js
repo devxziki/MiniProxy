@@ -10,7 +10,7 @@ export default function Dashboard() {
   const [systemPrompt, setSystemPrompt] = useState('');
   const [message, setMessage] = useState('What is the capital of France?');
   const [stream, setStream] = useState(true);
-  const [freeOnly, setFreeOnly] = useState(true);
+
   const [response, setResponse] = useState('');
   const [status, setStatus] = useState('Ready');
   const [elapsed, setElapsed] = useState('');
@@ -34,7 +34,7 @@ export default function Dashboard() {
     setModels([]);
     setSelectedModel('');
     setModelCount('');
-    const q = `/v1/models?provider=${selectedProvider}${freeOnly ? '&freeOnly=true' : ''}`;
+    const q = `/v1/models?provider=${selectedProvider}&freeOnly=true`;
     fetch(q)
       .then(r => r.json())
       .then(d => {
@@ -43,7 +43,7 @@ export default function Dashboard() {
         setModelCount(`${list.length} models`);
         if (list.length) setSelectedModel(list[0].id);
       });
-  }, [selectedProvider, freeOnly]);
+  }, [selectedProvider]);
 
   async function send() {
     if (controllerRef.current) {
@@ -174,17 +174,8 @@ export default function Dashboard() {
           </div>
         ))}
 
-        <div style={s.sidebarLabel}>Models</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <label style={{ position: 'relative', width: 36, height: 20, cursor: 'pointer' }}>
-            <input type="checkbox" checked={freeOnly} onChange={e => setFreeOnly(e.target.checked)} style={{ display: 'none' }} />
-            <span style={{ position: 'absolute', inset: 0, background: freeOnly ? '#238636' : '#30363d', borderRadius: 10, transition: '.2s' }}>
-              <span style={{ position: 'absolute', width: 16, height: 16, borderRadius: '50%', background: '#fff', top: 2, left: freeOnly ? 18 : 2, transition: '.2s' }} />
-            </span>
-          </label>
-          <span style={{ fontSize: 12, color: '#3fb950' }}>Free only</span>
-          <span style={{ fontSize: 11, color: '#484f58', marginLeft: 'auto' }}>{modelCount}</span>
-        </div>
+        <div style={s.sidebarLabel}>Free Models</div>
+        <div style={{ fontSize: 11, color: '#484f58', marginBottom: 8 }}>{modelCount}</div>
         <div style={{ maxHeight: 300, overflowY: 'auto' }}>
           {models.map(m => (
             <div key={m.id} style={{ fontSize: 12, padding: '4px 8px', borderRadius: 4, color: '#8b949e', cursor: 'default' }}
