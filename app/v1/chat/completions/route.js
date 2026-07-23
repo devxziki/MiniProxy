@@ -1,13 +1,14 @@
 import { getProvider } from '../../../../src/providers/index.js';
 
 export async function POST(req) {
-  const body = await req.json();
-  const providerId = body.provider || req.headers.get('x-provider') || 'opencode';
-  const provider = getProvider(providerId);
-  const { provider: _, ...apiBody } = body;
-
   try {
-    const upstream = await provider.chatCompletion(apiBody, Object.fromEntries(req.headers));
+    const body = await req.json();
+    const providerId = body.provider || req.headers.get('x-provider') || 'opencode';
+    const provider = getProvider(providerId);
+    const { provider: _, ...apiBody } = body;
+
+    const auth = req.headers.get('authorization') || '';
+    const upstream = await provider.chatCompletion(apiBody, { authorization: auth });
 
     if (!upstream.ok) {
       const text = await upstream.text();
