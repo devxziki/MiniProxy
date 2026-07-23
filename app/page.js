@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [elapsed, setElapsed] = useState('');
   const [loading, setLoading] = useState(false);
   const [modelCount, setModelCount] = useState('');
+  const [upstreamOk, setUpstreamOk] = useState(null);
   const [copied, setCopied] = useState(false);
   const controllerRef = useRef(null);
   const responseRef = useRef(null);
@@ -32,6 +33,10 @@ export default function Dashboard() {
   useEffect(() => {
     const el = document.getElementById('baseUrlDisplay');
     if (el) el.textContent = `${window.location.origin}/v1`;
+    fetch(`${window.location.origin}/health`)
+      .then(r => r.json())
+      .then(() => setUpstreamOk(true))
+      .catch(() => setUpstreamOk(false));
   }, []);
 
   useEffect(() => {
@@ -190,8 +195,13 @@ export default function Dashboard() {
           {!models.length && <div style={{ color: '#484f58', fontSize: 12, padding: 8 }}>No models</div>}
         </div>
 
-        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #30363d' }}>
-          <div style={{ fontSize: 11, color: '#484f58', marginBottom: 6 }}>Endpoints</div>
+          <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #30363d' }}>
+            <div style={{ fontSize: 11, color: '#484f58', marginBottom: 6 }}>Status</div>
+            <div style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+              <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: upstreamOk === null ? '#8b949e' : upstreamOk ? '#3fb950' : '#f85149' }} />
+              <span style={{ color: '#8b949e' }}>{upstreamOk === null ? 'Checking...' : upstreamOk ? 'Upstream OK' : 'Upstream down'}</span>
+            </div>
+            <div style={{ fontSize: 11, color: '#484f58', marginBottom: 6 }}>Endpoints</div>
           <div style={{ fontSize: 11, color: '#8b949e' }}>
             <div><span style={{ color: '#58a6ff' }}>POST</span> /v1/chat/completions</div>
             <div style={{ marginTop: 4 }}><span style={{ color: '#58a6ff' }}>GET</span> /v1/models</div>

@@ -2,39 +2,28 @@ import { getProvider } from '../../../../src/providers/index.js';
 
 const UPSTREAM = 'https://opencode.ai/zen/v1/chat/completions';
 
-async function readBody(stream) {
-  const reader = stream.getReader();
-  const decoder = new TextDecoder();
-  let text = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    text += decoder.decode(value, { stream: !done });
-  }
-  return text;
-}
-
 export async function POST(req) {
   try {
     const body = await req.json();
     const { provider: _, stream, ...apiBody } = body;
 
-    const headers = { 'Content-Type': 'application/json' };
-    if (stream) headers['Accept'] = 'text/event-stream';
-
-    const upstream = await fetch(UPSTREAM, {
+    const res = await fetch(UPSTREAM, {
       method: 'POST',
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'MiniProxy/1.0',
+        Accept: 'text/event-stream',
+      },
       body: JSON.stringify({ ...apiBody, stream }),
     });
 
-    if (!upstream.ok) {
-      const text = await readBody(upstream.body);
-      return Response.json({ error: text, status: upstream.status }, { status: upstream.status });
+    if (!res.ok) {
+      const text = await res.text();
+      return Response.json({ error: text, status: res.status }, { status: res.status });
     }
 
     if (stream) {
-      return new Response(upstream.body, {
+      return new Response(res.body, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
@@ -43,17 +32,8 @@ export async function POST(req) {
       });
     }
 
-    const raw = await readBody(upstream.body);
-    try {
-      const data = JSON.parse(raw);
-      return Response.json(data);
-    } catch {
-      return Response.json({
-        error: 'Upstream returned non-JSON response',
-        preview: raw.slice(0, 500),
-        status: upstream.status,
-      }, { status: 502 });
-    }
+    const data = await res.json();
+    return Response.json(data);
   } catch (err) {
     return Response.json({ error: err.message, stack: err.stack }, { status: 502 });
   }
