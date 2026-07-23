@@ -1,23 +1,27 @@
 import { getProvider } from '../../../../src/providers/index.js';
 
+const UPSTREAM = 'https://opencode.ai/zen/v1/chat/completions';
+
 export async function POST(req) {
   try {
     const body = await req.json();
-    const providerId = body.provider || req.headers.get('x-provider') || 'opencode';
-    const provider = getProvider(providerId);
-    const { provider: _, ...apiBody } = body;
+    const { provider: _, stream, ...apiBody } = body;
 
-    const auth = req.headers.get('authorization') || '';
-    const upstream = await provider.chatCompletion(apiBody, { authorization: auth });
+    const headers = { 'Content-Type': 'application/json' };
+    if (stream) headers['Accept'] = 'text/event-stream';
+
+    const upstream = await fetch(UPSTREAM, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ ...apiBody, stream }),
+    });
 
     if (!upstream.ok) {
       const text = await upstream.text();
-      let err;
-      try { err = JSON.parse(text); } catch { err = { error: text }; }
-      return Response.json(err, { status: upstream.status });
+      return Response.json({ error: text, status: upstream.status }, { status: upstream.status });
     }
 
-    if (apiBody.stream) {
+    if (stream) {
       return new Response(upstream.body, {
         headers: {
           'Content-Type': 'text/event-stream',
@@ -30,7 +34,7 @@ export async function POST(req) {
     const data = await upstream.json();
     return Response.json(data);
   } catch (err) {
-    return Response.json({ error: `Upstream request failed: ${err.message}` }, { status: 502 });
+    return Response.json({ error: err.message, stack: err.stack }, { status: 502 });
   }
 }
 
