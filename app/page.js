@@ -16,6 +16,7 @@ export default function Dashboard() {
   const [elapsed, setElapsed] = useState('');
   const [loading, setLoading] = useState(false);
   const [modelCount, setModelCount] = useState('');
+  const [copied, setCopied] = useState(false);
   const controllerRef = useRef(null);
   const responseRef = useRef(null);
 
@@ -127,6 +128,15 @@ export default function Dashboard() {
   function clear() {
     if (controllerRef.current) { controllerRef.current.abort(); controllerRef.current = null; }
     setResponse(''); setStatus('Ready'); setElapsed(''); setLoading(false);
+  }
+
+  async function copyResponse() {
+    if (!response) return;
+    try {
+      await navigator.clipboard.writeText(response);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
   }
 
   const s = {
@@ -252,7 +262,15 @@ export default function Dashboard() {
           </div>
 
           <div style={{ ...s.card, flex: 1 }}>
-            <div style={s.cardTitle}>Response</div>
+            <div style={{ ...s.cardTitle, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span>Response</span>
+              {response && <button onClick={copyResponse} style={{
+                marginLeft: 'auto', background: copied ? '#238636' : 'transparent',
+                border: '1px solid', borderColor: copied ? '#238636' : '#30363d',
+                borderRadius: 4, padding: '2px 8px', fontSize: 11, cursor: 'pointer',
+                color: copied ? '#fff' : '#8b949e',
+              }}>{copied ? 'Copied!' : 'Copy'}</button>}
+            </div>
             <div ref={responseRef} style={{
               background: '#0d1117', border: '1px solid #30363d', borderRadius: 6, padding: 12,
               minHeight: 200, maxHeight: 500, overflowY: 'auto',
