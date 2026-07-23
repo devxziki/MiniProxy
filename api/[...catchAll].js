@@ -1,9 +1,7 @@
 import { handleRequest } from '../src/proxy.js';
 
+// Vercel rewrites preserve the original URL, so /v1/chat/completions
+// arrives as-is — just pass it straight to the handler.
 export default async function handler(req, res) {
-  // Vercel strips the /api prefix — restore it so paths like /v1/... resolve correctly
-  if (!req.url.startsWith('/api')) {
-    req.url = '/api' + req.url;
-  }
   await handleRequest(req, res);
 }
