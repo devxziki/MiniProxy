@@ -31,7 +31,9 @@ function httpsPost(url, data, stream) {
 
 export async function POST(req) {
   try {
-    const body = await req.json();
+    const raw = await req.text();
+    let body;
+    try { body = JSON.parse(raw); } catch { return Response.json({ error: `Invalid JSON: ${raw.slice(0, 200)}` }, { status: 400 }); }
     const { provider: _, stream, ...apiBody } = body;
     const up = await httpsPost('https://opencode.ai/zen/v1/chat/completions', { ...apiBody, stream }, stream);
 
@@ -45,8 +47,7 @@ export async function POST(req) {
       });
     }
 
-    const codes = [...up.body.slice(0, 20)].map(c => c.charCodeAt(0));
-    return Response.json({ raw: up.body.slice(0, 300), codes, len: up.body.length });
+    return Response.json(JSON.parse(up.body));
   } catch (err) {
     return Response.json({ error: `[v3] ${err.message}`, stack: err.stack }, { status: 502 });
   }
