@@ -2,6 +2,18 @@ import { getProvider } from '../../../../src/providers/index.js';
 
 const UPSTREAM = 'https://opencode.ai/zen/v1/chat/completions';
 
+async function readBody(stream) {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let text = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: !done });
+  }
+  return text;
+}
+
 export async function POST(req) {
   try {
     const body = await req.json();
@@ -17,7 +29,7 @@ export async function POST(req) {
     });
 
     if (!upstream.ok) {
-      const text = await upstream.text();
+      const text = await readBody(upstream.body);
       return Response.json({ error: text, status: upstream.status }, { status: upstream.status });
     }
 
@@ -31,14 +43,14 @@ export async function POST(req) {
       });
     }
 
-    const raw = await upstream.text();
+    const raw = await readBody(upstream.body);
     try {
       const data = JSON.parse(raw);
       return Response.json(data);
     } catch {
       return Response.json({
         error: 'Upstream returned non-JSON response',
-        body: raw.slice(0, 500),
+        preview: raw.slice(0, 500),
         status: upstream.status,
       }, { status: 502 });
     }
