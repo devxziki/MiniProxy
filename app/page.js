@@ -30,6 +30,11 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
+    const el = document.getElementById('baseUrlDisplay');
+    if (el) el.textContent = `${window.location.origin}/v1`;
+  }, []);
+
+  useEffect(() => {
     if (!selectedProvider) return;
     setModels([]);
     setSelectedModel('');
@@ -191,6 +196,27 @@ export default function Dashboard() {
             <div><span style={{ color: '#58a6ff' }}>POST</span> /v1/chat/completions</div>
             <div style={{ marginTop: 4 }}><span style={{ color: '#58a6ff' }}>GET</span> /v1/models</div>
             <div style={{ marginTop: 4 }}><span style={{ color: '#58a6ff' }}>GET</span> /v1/providers</div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #30363d' }}>
+          <div style={{ fontSize: 11, color: '#484f58', marginBottom: 6 }}>OpenCode Desktop</div>
+          <div style={{ fontSize: 11, color: '#8b949e', lineHeight: 1.6 }}>
+            <div style={{ marginBottom: 8 }}>Add as custom provider:</div>
+            <div style={{ background: '#0d1117', borderRadius: 4, padding: '8px 10px', fontSize: 11 }}>
+              <div><span style={{ color: '#8b949e' }}>Name:</span> <span style={{ color: '#e6edf3' }}>MiniProxy</span></div>
+              <div><span style={{ color: '#8b949e' }}>Base URL:</span></div>
+              <div id="baseUrlDisplay" style={{ color: '#58a6ff', wordBreak: 'break-all' }}></div>
+              <div style={{ marginTop: 4 }}><span style={{ color: '#8b949e' }}>API Key:</span> <span style={{ color: '#e6edf3' }}>(leave empty)</span></div>
+            </div>
+            <div style={{ marginTop: 8 }}>Or download config:</div>
+            <a id="configDownloadLink" href="/opencode-config" download="opencode.json" style={{
+              display: 'inline-block', marginTop: 4, padding: '6px 12px',
+              background: '#1f6feb', color: '#fff', borderRadius: 6,
+              fontSize: 11, fontWeight: 600, textDecoration: 'none',
+            }} onMouseOver={e => e.target.style.background = '#388bfd'}
+               onMouseOut={e => e.target.style.background = '#1f6feb'}
+            >Download opencode.json</a>
           </div>
         </div>
       </aside>
