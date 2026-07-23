@@ -45,7 +45,8 @@ export async function POST(req) {
       });
     }
 
-    return Response.json(JSON.parse(up.body));
+    const codes = [...up.body.slice(0, 20)].map(c => c.charCodeAt(0));
+    return Response.json({ raw: up.body.slice(0, 300), codes, len: up.body.length });
   } catch (err) {
     return Response.json({ error: `[v3] ${err.message}`, stack: err.stack }, { status: 502 });
   }
