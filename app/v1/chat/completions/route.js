@@ -31,8 +31,17 @@ export async function POST(req) {
       });
     }
 
-    const data = await upstream.json();
-    return Response.json(data);
+    const raw = await upstream.text();
+    try {
+      const data = JSON.parse(raw);
+      return Response.json(data);
+    } catch {
+      return Response.json({
+        error: 'Upstream returned non-JSON response',
+        body: raw.slice(0, 500),
+        status: upstream.status,
+      }, { status: 502 });
+    }
   } catch (err) {
     return Response.json({ error: err.message, stack: err.stack }, { status: 502 });
   }
