@@ -1,0 +1,10 @@
+{
+  "name": "miniproxy",
+  "version": "1.0.0",
+  "description": "Lightweight AI proxy — route requests to free AI providers from anywhere",
+  "type": "module",
+  "scripts": {
+    "dev": "node index.js",
+    "start": "node index.js"
+  }
+}

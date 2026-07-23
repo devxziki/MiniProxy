@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiniProxy Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar { width: 280px; background: #161b22; border-right: 1px solid #30363d; padding: 20px; flex-shrink: 0; }
+  .main { flex: 1; display: flex; flex-direction: column; }
+  .header { padding: 16px 24px; border-bottom: 1px solid #30363d; background: #161b22; }
+  .header h1 { font-size: 18px; font-weight: 600; }
+  .header p { font-size: 12px; color: #8b949e; margin-top: 2px; }
+  .content { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+  .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; }
+  .card-title { font-size: 13px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+  .form-group { margin-bottom: 12px; }
+  .form-group label { display: block; font-size: 12px; color: #8b949e; margin-bottom: 4px; }
+  select, textarea, input { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #e6edf3; padding: 8px 12px; font-size: 13px; font-family: inherit; }
+  select:focus, textarea:focus, input:focus { outline: none; border-color: #58a6ff; }
+  textarea { resize: vertical; min-height: 80px; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 12px; }
+  .btn { padding: 8px 20px; border: none; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; background: #238636; color: #fff; }
+  .btn:hover { background: #2ea043; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-danger { background: #da3633; }
+  .btn-danger:hover { background: #f85149; }
+  .row { display: flex; gap: 12px; align-items: flex-end; }
+  .row .form-group { flex: 1; margin-bottom: 0; }
+  .switch-row { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .switch-row label { font-size: 12px; color: #8b949e; }
+  .toggle { position: relative; width: 36px; height: 20px; cursor: pointer; }
+  .toggle input { display: none; }
+  .toggle .slider { position: absolute; inset: 0; background: #30363d; border-radius: 10px; transition: .2s; }
+  .toggle .slider::before { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; background: #fff; top: 2px; left: 2px; transition: .2s; }
+  .toggle input:checked + .slider { background: #238636; }
+  .toggle input:checked + .slider::before { transform: translateX(16px); }
+  .response-area { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; min-height: 200px; max-height: 500px; overflow-y: auto; font-family: 'SF Mono', 'Cascadia Code', 'Consolas', monospace; font-size: 13px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+  .response-area .empty { color: #484f58; font-style: italic; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+  .stats { display: flex; gap: 16px; font-size: 12px; color: #8b949e; }
+  .stats span { display: flex; align-items: center; gap: 4px; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+  .badge-green { background: #23863620; color: #3fb950; border: 1px solid #23863640; }
+  .badge-gray { background: #30363d40; color: #8b949e; border: 1px solid #30363d; }
+  .model-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; }
+  .model-item { font-size: 12px; padding: 4px 8px; border-radius: 4px; color: #8b949e; cursor: default; }
+  .model-item:hover { background: #0d1117; color: #e6edf3; }
+  .sidebar-label { font-size: 11px; color: #484f58; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; margin-top: 16px; }
+  .sidebar-label:first-child { margin-top: 0; }
+  .provider-card { padding: 10px 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; margin-bottom: 8px; }
+  .provider-name { font-size: 13px; font-weight: 600; }
+  .provider-meta { font-size: 11px; color: #8b949e; margin-top: 2px; }
+  .loading { display: inline-block; width: 14px; height: 14px; border: 2px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .stream-cursor { animation: blink .8s infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #0d1117; }
+  ::-webkit-scrollbar-thumb { background: #30363d; border-radius: 4px; }
+  .toast { position: fixed; bottom: 20px; right: 20px; padding: 10px 16px; border-radius: 6px; font-size: 13px; z-index: 100; animation: fadeIn .3s; }
+  .toast-error { background: #da3633; color: #fff; }
+  .toast-success { background: #238636; color: #fff; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div style="font-size:16px;font-weight:700;margin-bottom:4px;">MiniProxy</div>
+    <div style="font-size:11px;color:#484f58;margin-bottom:20px;">v1.0.0</div>
+
+    <div class="sidebar-label">Providers</div>
+    <div id="providerList"><span class="loading"></span></div>
+
+    <div class="sidebar-label">Available Models</div>
+    <div class="switch-row" style="margin-bottom:8px;padding-left:0;">
+      <label class="toggle"><input type="checkbox" id="freeToggle" checked><span class="slider"></span></label>
+      <label for="freeToggle" style="font-size:12px;color:#3fb950;">Free only</label>
+      <span id="modelCount" style="margin-left:auto;font-size:11px;color:#484f58;"></span>
+    </div>
+    <div id="modelList"><span class="loading"></span></div>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #30363d;">
+      <div style="font-size:11px;color:#484f58;margin-bottom:6px;">Endpoints</div>
+      <div style="font-size:11px;color:#8b949e;">
+        <div><code style="color:#58a6ff;">POST</code> /v1/chat/completions</div>
+        <div style="margin-top:4px;"><code style="color:#58a6ff;">GET</code> /v1/models</div>
+        <div style="margin-top:4px;"><code style="color:#58a6ff;">GET</code> /v1/providers</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="header">
+      <h1>Chat Playground</h1>
+      <p>Test providers and models right from your browser</p>
+    </div>
+    <div class="content">
+      <div class="card">
+        <div class="card-title">Request</div>
+        <div class="row">
+          <div class="form-group">
+            <label>Provider</label>
+            <select id="providerSelect"></select>
+          </div>
+          <div class="form-group">
+            <label>Model</label>
+            <select id="modelSelect"><option value="">Loading...</option></select>
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:12px;">
+          <label>System Prompt</label>
+          <textarea id="systemInput" placeholder="Optional system prompt..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Messages</label>
+          <textarea id="messageInput" placeholder="Enter your message..." style="min-height:100px;">What is the capital of France?</textarea>
+        </div>
+        <div class="switch-row">
+          <label class="toggle"><input type="checkbox" id="streamToggle" checked><span class="slider"></span></label>
+          <label for="streamToggle">Stream response</label>
+        </div>
+        <div class="row">
+          <button class="btn" id="sendBtn">Send</button>
+          <button class="btn btn-danger" id="clearBtn">Clear</button>
+          <div class="stats" id="statsBar" style="margin-left:auto;">
+            <span id="statStatus">Ready</span>
+            <span id="statModel"></span>
+            <span id="statTime"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="flex:1;">
+        <div class="card-title">Response</div>
+        <div class="response-area" id="responseArea"><span class="empty">Send a message to see the response...</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DASHBOARD_ORIGIN = window.location.origin;
+
+// State
+let providers = [];
+let allModels = [];
+let controller = null;
+
+const $ = id => document.getElementById(id);
+const providerSelect = $('providerSelect');
+const modelSelect = $('modelSelect');
+const systemInput = $('systemInput');
+const messageInput = $('messageInput');
+const streamToggle = $('streamToggle');
+const sendBtn = $('sendBtn');
+const clearBtn = $('clearBtn');
+const responseArea = $('responseArea');
+const statStatus = $('statStatus');
+const statModel = $('statModel');
+const statTime = $('statTime');
+const providerList = $('providerList');
+const modelList = $('modelList');
+const freeToggle = $('freeToggle');
+const modelCount = $('modelCount');
+
+function toast(msg, type = 'error') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+async function fetchJson(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${r.status} ${r.statusText}`);
+  return r.json();
+}
+
+// Load providers
+async function loadProviders() {
+  try {
+    const data = await fetchJson(`${DASHBOARD_ORIGIN}/v1/providers`);
+    providers = data.providers || [];
+    providerSelect.innerHTML = providers.map(p =>
+      `<option value="${p.id}">${p.name}</option>`
+    ).join('');
+    providerList.innerHTML = providers.map(p =>
+      `<div class="provider-card">
+        <div class="provider-name">${p.name}</div>
+        <div class="provider-meta">
+          ${p.noAuth ? '<span class="badge badge-green">No auth</span>' : '<span class="badge badge-gray">API key</span>'}
+          ${p.freeEndpoint ? '<span class="badge badge-green">Free only</span>' : ''}
+          &middot; ${p.id}
+        </div>
+      </div>`
+    ).join('');
+    if (providers.length) loadModels(providers[0].id);
+  } catch (err) {
+    providerList.innerHTML = `<div style="color:#f85149;font-size:12px;">Failed: ${err.message}</div>`;
+  }
+}
+
+// Load models for selected provider
+async function loadModels(providerId) {
+  const freeOnly = freeToggle.checked;
+  modelSelect.innerHTML = '<option value="">Loading...</option>';
+  modelList.innerHTML = '<span class="loading"></span>';
+  modelCount.textContent = '';
+  try {
+    const data = await fetchJson(`${DASHBOARD_ORIGIN}/v1/models?provider=${providerId}${freeOnly ? '&freeOnly=true' : ''}`);
+    allModels = data.data || data.models || [];
+    if (allModels.length) {
+      modelSelect.innerHTML = allModels.map(m =>
+        `<option value="${m.id}">${m.id}</option>`
+      ).join('');
+      modelList.innerHTML = allModels.map(m =>
+        `<div class="model-item">${m.id}</div>`
+      ).join('');
+      modelCount.textContent = `${allModels.length} models`;
+    } else {
+      modelSelect.innerHTML = '<option value="">No models found</option>';
+      modelList.innerHTML = '<div style="color:#484f58;font-size:12px;">No models returned</div>';
+    }
+  } catch (err) {
+    modelSelect.innerHTML = '<option value="">Failed to load</option>';
+    modelList.innerHTML = `<div style="color:#f85149;font-size:12px;">Failed: ${err.message}</div>`;
+  }
+}
+
+providerSelect.addEventListener('change', () => loadModels(providerSelect.value));
+freeToggle.addEventListener('change', () => loadModels(providerSelect.value));
+
+// Send chat
+async function sendChat() {
+  if (controller) { controller.abort(); controller = null; return; }
+
+  const provider = providerSelect.value;
+  const model = modelSelect.value;
+  const system = systemInput.value.trim();
+  const userMsg = messageInput.value.trim();
+
+  if (!model) { toast('Please select a model'); return; }
+  if (!userMsg) { toast('Please enter a message'); return; }
+
+  const messages = [];
+  if (system) messages.push({ role: 'system', content: system });
+  messages.push({ role: 'user', content: userMsg });
+
+  const useStream = streamToggle.checked;
+  sendBtn.textContent = 'Stop';
+  sendBtn.style.background = '#da3633';
+  statStatus.textContent = 'Streaming...';
+  statModel.textContent = model;
+  statTime.textContent = '';
+  responseArea.innerHTML = '';
+  const startTime = Date.now();
+
+  try {
+    if (useStream) {
+      controller = new AbortController();
+      const r = await fetch(`${DASHBOARD_ORIGIN}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Provider': provider },
+        body: JSON.stringify({ model, messages, stream: true }),
+        signal: controller.signal,
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ error: r.statusText }));
+        throw new Error(err.error || r.statusText);
+      }
+
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6).trim();
+            if (data === '[DONE]') continue;
+            try {
+              const parsed = JSON.parse(data);
+              const choice = parsed.choices?.[0];
+              const delta = choice?.delta?.content || choice?.text || '';
+              if (delta) {
+                fullContent += delta;
+                responseArea.innerHTML = escapeHtml(fullContent) + '<span class="stream-cursor">|</span>';
+              }
+            } catch {}
+          }
+        }
+      }
+      responseArea.innerHTML = escapeHtml(fullContent) || '<span class="empty">(empty response)</span>';
+      statStatus.textContent = 'Done';
+    } else {
+      const r = await fetch(`${DASHBOARD_ORIGIN}/v1/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Provider': provider },
+        body: JSON.stringify({ model, messages, stream: false }),
+      });
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({ error: r.statusText }));
+        throw new Error(err.error || r.statusText);
+      }
+      const data = await r.json();
+      const content = data.choices?.[0]?.message?.content || JSON.stringify(data, null, 2);
+      responseArea.innerHTML = escapeHtml(content);
+      statStatus.textContent = 'Done';
+    }
+    statTime.textContent = `${((Date.now() - startTime) / 1000).toFixed(1)}s`;
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      statStatus.textContent = 'Stopped';
+    } else {
+      responseArea.innerHTML = `<span style="color:#f85149;">Error: ${escapeHtml(err.message)}</span>`;
+      statStatus.textContent = 'Error';
+      toast(err.message);
+    }
+  }
+
+  sendBtn.textContent = 'Send';
+  sendBtn.style.background = '';
+  controller = null;
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+sendBtn.addEventListener('click', sendChat);
+clearBtn.addEventListener('click', () => {
+  if (controller) { controller.abort(); controller = null; }
+  responseArea.innerHTML = '<span class="empty">Send a message to see the response...</span>';
+  statStatus.textContent = 'Ready';
+  statModel.textContent = '';
+  statTime.textContent = '';
+  sendBtn.textContent = 'Send';
+  sendBtn.style.background = '';
+});
+
+loadProviders();
+</script>
+</body>
+</html>
